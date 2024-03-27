@@ -31,7 +31,6 @@ GPUS_PER_WORKER="$((${NUM_GPUS} / ${NUM_WORKERS}))"
 : ${CLUSTER_CONFIG_PATH:=${DEFAULT_CLUSTER_CONFIG_PATH}}
 
 create_cluster ${KIND_IMAGE} ${CLUSTER_NAME} ${CLUSTER_CONFIG_PATH} ${NUM_WORKERS}
-add_nvidia_runtimeclass ${CLUSTER_NAME}
 
 for worker_id in $(seq ${NUM_WORKERS}); do
 	gpu_beg_id=$(((${worker_id} - 1) * ${GPUS_PER_WORKER}))

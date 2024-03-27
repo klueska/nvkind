@@ -126,12 +126,6 @@ function patch_proc_driver_nvidia() {
 	done
 }
 
-# Add an nvidia RuntimeClass
-function add_nvidia_runtimeclass() {
-	local cluster_name="${1}"
-	kubectl --context=kind-${cluster_name} apply -f ${COMMON_DIR}/nvidia-runtimeclass.yaml
-}
-
 # Print GPUs for a given worker
 function print_worker_gpus() {
 	local cluster_name="${1}"

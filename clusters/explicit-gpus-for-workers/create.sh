@@ -27,7 +27,6 @@ NUM_WORKERS="${#}"
 : ${CLUSTER_CONFIG_PATH:=${DEFAULT_CLUSTER_CONFIG_PATH}}
 
 create_cluster ${KIND_IMAGE} ${CLUSTER_NAME} ${CLUSTER_CONFIG_PATH} ${NUM_WORKERS}
-add_nvidia_runtimeclass ${CLUSTER_NAME}
 
 for worker_id in $(seq ${NUM_WORKERS}); do
 	allowed_gpus="${!worker_id}"
