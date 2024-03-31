@@ -1,6 +1,6 @@
 # Examples of how to run `kind` with GPUs
 
-This repo provides examples / tooling to run `kind` clusters with access to GPUs.
+This package provides examples / tooling to run `kind` clusters with access to GPUs.
 
 Unfortunately, running `kind` with access to GPUs is not very straightforward.
 There is no standard way to inject GPUs support into a `kind` worker node, and
@@ -8,13 +8,13 @@ even with a series of "hacks" to make it possible, some post processing still
 needs to be performed to ensure that different sets of GPUs can be isolated to
 different worker nodes.
 
-The scripts contained in this repository encapsulate the set of steps required
+The scripts contained in this package encapsulate the set of steps required
 to do what is described above. They can either be run directly, or you can use
 them as a starting point to write your own.
 
 ## Prerequisites
 
-The following prerequisites are required to run run the scripts provided by this repo:
+The following prerequisites are required to run run the scripts provided by this package:
 
     Prerequisite | Link
     ------------ | -------------------------------------
@@ -103,7 +103,7 @@ GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
 
 ## Create a cluster
 
-This repository contains two scripts that can be used to create `kind` clusters
+This package contains two scripts that can be used to create `kind` clusters
 with GPU support in different ways:
 
 ```bash
