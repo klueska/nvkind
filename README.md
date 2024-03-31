@@ -103,11 +103,12 @@ GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
 
 ## Create a cluster
 
-This repository contains two scripts that can be used to create `kind` clusters with GPU support in different ways:
+This repository contains two scripts that can be used to create `kind` clusters
+with GPU support in different ways:
 
 ```bash
-./clusters/evenly-distributed-gpus-by-workers/create.sh <num-workers>
-./clusters/explicit-gpus-for-workers/create.sh <worker1-gpu-list> <worker2-gpu-list> ...
+./evenly-distributed-gpus-by-workers.sh <num-workers>
+./explicit-gpus-for-workers.sh <worker1-gpu-list> <worker2-gpu-list> ...
 ```
 
 The first can be used to create a cluster with a specific number of workers,
@@ -119,14 +120,14 @@ For example, on an 8 GPU machine, running the following will create a `kind`
 cluster with 4 worker nodes that have access to 2 GPUs each:
 
 ```bash
-./clusters/evenly-distributed-gpus-by-workers/create.sh 4
+./evenly-distributed-gpus-by-workers.sh 4
 ```
 
 Likewise, running the following will create a `kind` cluster with 8 worker
 nodes that have access to 1 GPU each:
 
 ```bash
-./clusters/evenly-distributed-gpus-by-workers/create.sh 8
+./evenly-distributed-gpus-by-workers.sh 8
 ```
 
 And running the following will create a `kind` cluster with 2 worker nodes that
@@ -135,7 +136,7 @@ worker node (the first with access to GPU 0 and the second with access to GPUs
 1, 2, and 3):
 
 ```bash
-./clusters/explicit-gpus-for-workers/create.sh "0" "1 2 3"
+./explicit-gpus-for-workers.sh "0" "1 2 3"
 ```
 
 This can be verified by running the following:
@@ -147,17 +148,17 @@ explicit-gpus-xrq0c
 ```
 
 ```bash
-$ (source include/common.sh; print_all_worker_gpus evenly-distributed-2-by-4)
+$ (source common.sh; print_all_worker_gpus evenly-distributed-2-by-4)
 ...
 ```
 
 ```bash
-$ (source include/common.sh; print_all_worker_gpus evenly-distributed-1-by-8)
+$ (source common.sh; print_all_worker_gpus evenly-distributed-1-by-8)
 ...
 ```
 
 ```bash
-$ (source include/common.sh; print_all_worker_gpus explicit-gpus-xrq0c)
+$ (source common.sh; print_all_worker_gpus explicit-gpus-xrq0c)
 ...
 ```
 
