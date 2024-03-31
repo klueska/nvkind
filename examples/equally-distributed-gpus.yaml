@@ -1,0 +1,44 @@
+# Copyright 2024 NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{{- $gpus_per_worker := div numGPUs $.numWorkers }}
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+{{- if hasKey $ "name" }}
+name: {{ $.name }}
+{{- end }}
+nodes:
+- role: control-plane
+  {{- if hasKey $ "image" }}
+  image: {{ $.image }}
+  {{- end }}
+{{- range $worker := until $.numWorkers }}
+- role: worker
+  {{- if hasKey $ "image" }}
+  image: {{ $.Image }}
+  {{- end }}
+
+  {{- $gpu_beg_id := mul $worker $gpus_per_worker | int }}
+  {{- $gpu_end_id := add $gpu_beg_id $gpus_per_worker | int }}
+  {{- $gpus := untilStep $gpu_beg_id $gpu_end_id 1 }}
+  extraMounts:
+    # We inject all NVIDIA GPUs using the nvidia-container-runtime.
+    # This requires `accept-nvidia-visible-devices-as-volume-mounts = true` be set
+    # in `/etc/nvidia-container-runtime/config.toml`
+    {{- range $gpu := $gpus }}
+    - hostPath: /dev/null
+      containerPath: /var/run/nvidia-container-devices/{{ $gpu }}
+    {{- end }}
+{{- end }}
