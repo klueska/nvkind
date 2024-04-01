@@ -11,6 +11,7 @@ import (
 
 type ClusterCreateFlags struct {
 	Name           string
+	Image          string
 	ConfigTemplate string
 	ConfigValues   string
 	KubeConfig     string
@@ -32,6 +33,12 @@ func BuildClusterCreateCommand() *cli.Command {
 			Usage:       "the name of the cluster to create (default nvkind-<random>)",
 			Destination: &flags.Name,
 			EnvVars:     []string{"KIND_CLUSTER_NAME"},
+		},
+		&cli.StringFlag{
+			Name:        "image",
+			Usage:       "node docker image to use for booting the cluster",
+			Destination: &flags.Image,
+			EnvVars:     []string{"KIND_CLUSTER_IMAGE"},
 		},
 		&cli.StringFlag{
 			Name:        "config-template",
@@ -96,6 +103,10 @@ func runClusterCreate(c *cli.Context, f *ClusterCreateFlags) error {
 
 func (f *ClusterCreateFlags) gatherConfigOptions() ([]nvkind.ConfigOption, error) {
 	var configOptions []nvkind.ConfigOption
+
+	if f.Image != "" {
+		configOptions = append(configOptions, nvkind.WithImage(f.Image))
+	}
 
 	if f.ConfigTemplate != "" {
 		configOptions = append(configOptions, nvkind.WithConfigTemplate(f.ConfigTemplate))

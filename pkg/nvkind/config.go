@@ -76,6 +76,12 @@ func NewConfig(opts ...ConfigOption) (*Config, error) {
 		cluster.Name = o.defaultName
 	}
 
+	if o.image != "" {
+		for i := range cluster.Nodes {
+			cluster.Nodes[i].Image = o.image
+		}
+	}
+
 	config := &Config{
 		Cluster: &cluster,
 		nvml:    o.nvml,

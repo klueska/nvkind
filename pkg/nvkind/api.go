@@ -47,6 +47,7 @@ type GPUInfo struct {
 
 type ConfigOptions struct {
 	defaultName        string
+	image              string
 	nvml               nvml.Interface
 	stdout             io.Writer
 	stderr             io.Writer
@@ -62,6 +63,12 @@ type ConfigOption func(*ConfigOptions)
 func WithDefaultName(name string) ConfigOption {
 	return func(o *ConfigOptions) {
 		o.defaultName = name
+	}
+}
+
+func WithImage(image string) ConfigOption {
+	return func(o *ConfigOptions) {
+		o.image = image
 	}
 }
 
