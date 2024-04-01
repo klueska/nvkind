@@ -1,6 +1,7 @@
 # Examples of how to run `kind` with GPUs
 
-This repo provides examples / tooling to run `kind` clusters with access to GPUs.
+This repo provides a tool called `nvkind` to create and manage `kind` clusters
+with access to GPUs.
 
 Unfortunately, running `kind` with access to GPUs is not very straightforward.
 There is no standard way to inject GPUs support into a `kind` worker node, and
@@ -8,17 +9,80 @@ even with a series of "hacks" to make it possible, some post processing still
 needs to be performed to ensure that different sets of GPUs can be isolated to
 different worker nodes.
 
-The scripts contained in this repository encapsulate the set of steps required
-to do what is described above. They can either be run directly, or you can use
-them as a starting point to write your own.
+The `nvkind` tool encapsulate the set of steps required to do what is described
+above. It can either be run directly, or you can import `pkg/nvkind` as a
+starting point to write your own tool.
+
+## Quickstart
+
+Assuming all of the [prerequisites](#prerequisites) have been meet, the
+following set of commands can be used to build `nvkind`, create a set of GPU
+enabled clusters with it, and then print the set of GPUs available on all nodes
+of a given cluster.
+
+Build `nvkind`
+```bash
+make
+```
+
+Create a default cluster with 1 worker node with access to all GPUs on the machine:
+```bash
+./nvkind cluster create
+```
+
+Create a cluster with 1 worker node per GPU on the machine:
+```bash
+./nvkind cluster create --config-template=examples/one-worker-per-gpu.yaml
+```
+
+Assuming a machine with 8 GPUs, create a cluster with 4 worker nodes and 2 GPUs
+evenly distributed to each:
+```bash
+./nvkind cluster create \
+	--name=evenly-distributed-2-by-4 \
+	--config-template=examples/equally-distributed-gpus.yaml \
+	--config-values=- \
+<<EOF
+numWorkers: 4
+EOF
+```
+
+Assuming a machine with 8 GPUs, create a cluster with 2 worker nodes, the first
+with access to GPU 0 and the second with access to GPUs 1, 2, and 3.
+```bash
+./nvkind cluster create \
+	--name=explicit-gpus \
+	--config-template=examples/explicit-gpus-per-worker.yaml \
+	--config-values=- \
+<<EOF
+workers:
+- devices: 0
+- devices: [1, 2, 3]
+EOF
+```
+
+List the clusters:
+```bash
+./nvkind cluster list
+```
+
+Print the set of GPUs available on all nodes of a cluster (include a `--name`
+flag to select a specific cluster, or omit it to run against the current
+kubecontext):
+```bash
+./nvkind cluster print-gpus
+...
+```
 
 ## Prerequisites
 
-The following prerequisites are required to run run the scripts provided by this repo:
+The following prerequisites are required to build and run `nvkind` as well as
+follow all of the examples provided in this README:
 
     Prerequisite | Link
     ------------ | -------------------------------------
-    jq           | https://jqlang.github.io/jq/download/
+    go           | https://go.dev/doc/install
+    make         | https://www.gnu.org/software/make/#download
     docker       | https://docs.docker.com/get-docker/
     kind         | https://kind.sigs.k8s.io/docs/user/quick-start/#installation
     kubectl      | https://kubernetes.io/docs/tasks/tools/
@@ -101,137 +165,12 @@ GPU 6: NVIDIA A100-SXM4-40GB (UUID: GPU-8216274a-c05d-def0-af18-c74647300267)
 GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
 ```
 
-## Create a cluster
-
-This repository contains two scripts that can be used to create `kind` clusters
-with GPU support in different ways:
-
-```bash
-./evenly-distributed-gpus-by-workers.sh <num-workers>
-./explicit-gpus-for-workers.sh <worker1-gpu-list> <worker2-gpu-list> ...
-```
-
-The first can be used to create a cluster with a specific number of workers,
-where the number of GPUs on the machine are evenly distributed among them. The
-second can be used to customize exactly how many workers there are and which
-exact GPUs are placed on them.
-
-For example, on an 8 GPU machine, running the following will create a `kind`
-cluster with 4 worker nodes that have access to 2 GPUs each:
-
-```bash
-./evenly-distributed-gpus-by-workers.sh 4
-```
-
-Likewise, running the following will create a `kind` cluster with 8 worker
-nodes that have access to 1 GPU each:
-
-```bash
-./evenly-distributed-gpus-by-workers.sh 8
-```
-
-And running the following will create a `kind` cluster with 2 worker nodes that
-have access to the specific GPUs that are listed on the command line for each
-worker node (the first with access to GPU 0 and the second with access to GPUs
-1, 2, and 3):
-
-```bash
-./explicit-gpus-for-workers.sh "0" "1 2 3"
-```
-
-This can be verified by running the following:
-```bash
-$ kind get clusters
-evenly-distributed-2-by-4
-evenly-distributed-1-by-8
-explicit-gpus-xrq0c
-```
-
-```bash
-$ (source common.sh; print_all_worker_gpus evenly-distributed-2-by-4)
-...
-```
-
-```bash
-$ (source common.sh; print_all_worker_gpus evenly-distributed-1-by-8)
-...
-```
-
-```bash
-$ (source common.sh; print_all_worker_gpus explicit-gpus-xrq0c)
-...
-```
-
-Where the output of the first looks like the following (with similar results for
-the others):
-```bash
-{
-  "node": "evenly-distributed-2-by-4-worker",
-  "nvidia.com/gpu": [
-    {
-      "index": "0",
-      "name": "NVIDIA A100-SXM4-40GB",
-      "uuid": "GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c"
-    },
-    {
-      "index": "1",
-      "name": "NVIDIA A100-SXM4-40GB",
-      "uuid": "GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c"
-    }
-  ]
-}
-{
-  "node": "evenly-distributed-2-by-4-worker2",
-  "nvidia.com/gpu": [
-    {
-      "index": "0",
-      "name": "NVIDIA A100-SXM4-40GB",
-      "uuid": "GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54"
-    },
-    {
-      "index": "1",
-      "name": "NVIDIA A100-SXM4-40GB",
-      "uuid": "GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2"
-    }
-  ]
-}
-{
-  "node": "evenly-distributed-2-by-4-worker3",
-  "nvidia.com/gpu": [
-    {
-      "index": "0",
-      "name": "NVIDIA A100-SXM4-40GB",
-      "uuid": "GPU-ec9d53cc-125d-d4a3-9687-304df8eb4749"
-    },
-    {
-      "index": "1",
-      "name": "NVIDIA A100-SXM4-40GB",
-      "uuid": "GPU-3eb87630-93d5-b2b6-b8ff-9b359caf4ee2"
-    }
-  ]
-}
-{
-  "node": "evenly-distributed-2-by-4-worker4",
-  "nvidia.com/gpu": [
-    {
-      "index": "0",
-      "name": "NVIDIA A100-SXM4-40GB",
-      "uuid": "GPU-8216274a-c05d-def0-af18-c74647300267"
-    },
-    {
-      "index": "1",
-      "name": "NVIDIA A100-SXM4-40GB",
-      "uuid": "GPU-b1028956-cfa2-0990-bf4a-5da9abb51763"
-    }
-  ]
-}
-```
-
 ## Install the k8s-device-plugin
 
-With one of the clusters above in place, the `k8s-device-plugin` (or
-`gpu-operator`) can be installed on the cluster as appropriate. For the
-purposes of this example, we will install the `k8s-device-plugin` directly.
+Assuming a cluster has been created as described in the [quickstart
+guide](#quickstart) above, the `k8s-device-plugin` (or `gpu-operator`) can be
+installed on the cluster as appropriate. For the purposes of this example, we
+will install the `k8s-device-plugin` directly.
 
 First, add the `helm`repo for the `k8s-device-plugin`:
 ```bash
