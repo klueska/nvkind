@@ -68,12 +68,22 @@ func NewCluster(opts ...ClusterOption) (*Cluster, error) {
 	return cluster, nil
 }
 
-func (c *Cluster) Create() error {
+func (c *Cluster) Create(opts ...ClusterCreateOption) error {
 	command := []string{
 		"kind", "create", "cluster",
-		"--retain",
 		"--name", c.Name,
 		"--config", "-",
+	}
+
+	o := ClusterCreateOptions{}
+	for _, opt := range opts {
+		opt(&o)
+	}
+	if o.retain {
+		command = append(command, "--retain")
+	}
+	if o.wait != 0 {
+		command = append(command, "--wait", o.wait.String())
 	}
 
 	configBytes, err := yaml.Marshal(c.config)

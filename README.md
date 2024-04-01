@@ -20,7 +20,7 @@ following set of commands can be used to build `nvkind`, create a set of GPU
 enabled clusters with it, and then print the set of GPUs available on all nodes
 of a given cluster.
 
-Build `nvkind`
+Build `nvkind`:
 ```bash
 make
 ```

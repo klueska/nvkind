@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/klueska/kind-with-gpus-examples/pkg/nvkind"
 	"github.com/urfave/cli/v2"
@@ -12,6 +13,8 @@ import (
 type ClusterCreateFlags struct {
 	Name           string
 	Image          string
+	Retain         bool
+	Wait           time.Duration
 	ConfigTemplate string
 	ConfigValues   string
 	KubeConfig     string
@@ -39,6 +42,18 @@ func BuildClusterCreateCommand() *cli.Command {
 			Usage:       "node docker image to use for booting the cluster",
 			Destination: &flags.Image,
 			EnvVars:     []string{"KIND_CLUSTER_IMAGE"},
+		},
+		&cli.BoolFlag{
+			Name:        "retain",
+			Usage:       "retain nodes for debugging when cluster creation fails",
+			Destination: &flags.Retain,
+			EnvVars:     []string{"KIND_CLUSTER_RETAIN"},
+		},
+		&cli.DurationFlag{
+			Name:        "wait",
+			Usage:       "wait for control plane node to be ready",
+			Destination: &flags.Wait,
+			EnvVars:     []string{"KIND_CLUSTER_RETAIN"},
 		},
 		&cli.StringFlag{
 			Name:        "config-template",
@@ -74,7 +89,12 @@ func runClusterCreate(c *cli.Context, f *ClusterCreateFlags) error {
 		return fmt.Errorf("new cluster: %w", err)
 	}
 
-	if err := cluster.Create(); err != nil {
+	clusterCreateOptions, err := f.gatherClusterCreateOptions()
+	if err != nil {
+		return fmt.Errorf("gathering cluster create options: %w", err)
+	}
+
+	if err := cluster.Create(clusterCreateOptions...); err != nil {
 		return fmt.Errorf("creating cluster: %w", err)
 	}
 
@@ -160,4 +180,18 @@ func (f *ClusterCreateFlags) gatherClusterOptions() ([]nvkind.ClusterOption, err
 	}
 
 	return clusterOptions, nil
+}
+
+func (f *ClusterCreateFlags) gatherClusterCreateOptions() ([]nvkind.ClusterCreateOption, error) {
+	var clusterCreateOptions []nvkind.ClusterCreateOption
+
+	if f.Retain {
+		clusterCreateOptions = append(clusterCreateOptions, nvkind.WithRetain())
+	}
+
+	if f.Wait != 0 {
+		clusterCreateOptions = append(clusterCreateOptions, nvkind.WithWait(f.Wait))
+	}
+
+	return clusterCreateOptions, nil
 }

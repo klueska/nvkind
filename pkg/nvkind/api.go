@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"io"
 	"text/template"
+	"time"
 
 	"github.com/NVIDIA/go-nvlib/pkg/nvml"
 	kind "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
@@ -136,5 +137,24 @@ func WithConfig(config *Config) ClusterOption {
 func WithKubeConfig(kubeconfig string) ClusterOption {
 	return func(o *ClusterOptions) {
 		o.kubeconfig = kubeconfig
+	}
+}
+
+type ClusterCreateOptions struct {
+	retain bool
+	wait   time.Duration
+}
+
+type ClusterCreateOption func(*ClusterCreateOptions)
+
+func WithRetain() ClusterCreateOption {
+	return func(o *ClusterCreateOptions) {
+		o.retain = true
+	}
+}
+
+func WithWait(wait time.Duration) ClusterCreateOption {
+	return func(o *ClusterCreateOptions) {
+		o.wait = wait
 	}
 }
