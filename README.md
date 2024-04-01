@@ -32,16 +32,17 @@ Create a default cluster with 1 worker node with access to all GPUs on the machi
 
 Create a cluster with 1 worker node per GPU on the machine:
 ```bash
-./nvkind cluster create --config-template=examples/one-worker-per-gpu.yaml
+./nvkind cluster create \
+--config-template=examples/one-worker-per-gpu.yaml
 ```
 
 Assuming a machine with 8 GPUs, create a cluster with 4 worker nodes and 2 GPUs
 evenly distributed to each:
 ```bash
 ./nvkind cluster create \
-	--name=evenly-distributed-2-by-4 \
-	--config-template=examples/equally-distributed-gpus.yaml \
-	--config-values=- \
+--name=evenly-distributed-2-by-4 \
+--config-template=examples/equally-distributed-gpus.yaml \
+--config-values=- \
 <<EOF
 numWorkers: 4
 EOF
@@ -51,9 +52,9 @@ Assuming a machine with 8 GPUs, create a cluster with 2 worker nodes, the first
 with access to GPU 0 and the second with access to GPUs 1, 2, and 3.
 ```bash
 ./nvkind cluster create \
-	--name=explicit-gpus \
-	--config-template=examples/explicit-gpus-per-worker.yaml \
-	--config-values=- \
+--name=explicit-gpus \
+--config-template=examples/explicit-gpus-per-worker.yaml \
+--config-values=- \
 <<EOF
 workers:
 - devices: 0
@@ -71,8 +72,55 @@ flag to select a specific cluster, or omit it to run against the current
 kubecontext):
 ```bash
 ./nvkind cluster print-gpus
-...
 ```
+
+The output of this command for the last cluster created would look as follows:
+```bash
+[
+    {
+        "node": "explicit-gpus-worker",
+        "gpus": [
+            {
+                "Index": "0",
+                "Name": "NVIDIA A100-SXM4-40GB",
+                "UUID": "GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c"
+            }
+        ]
+    },
+    {
+        "node": "explicit-gpus-worker2",
+        "gpus": [
+            {
+                "Index": "0",
+                "Name": "NVIDIA A100-SXM4-40GB",
+                "UUID": "GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c"
+            },
+            {
+                "Index": "1",
+                "Name": "NVIDIA A100-SXM4-40GB",
+                "UUID": "GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54"
+            },
+            {
+                "Index": "2",
+                "Name": "NVIDIA A100-SXM4-40GB",
+                "UUID": "GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2"
+            }
+        ]
+    }
+]
+```
+
+As you can see, `nvkind` extends the support of the normal `kind create
+cluster` call to allow for a templated config file with a set of values.
+Templates can make use of [sprig](https://masterminds.github.io/sprig/)
+functions as well as a special `numGPUs` function to get the total number of
+GPUs available on a machine.  Take a look through the templates in the
+`examples` folder to see how these functions are used.
+
+In general, the options for `--name`. `--image`, `--retain`, and `--wait` are
+treated the same as they are for the standard `kind create cluster` call. Take
+some time to browse through the help menu of the various subcommands to see
+what other options are available.
 
 ## Prerequisites
 
