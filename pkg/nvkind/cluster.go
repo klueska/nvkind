@@ -27,7 +27,7 @@ const (
 
 func GetClusterNames() (sets.Set[string], error) {
 	command := []string{
-		"kind", "get", "clusters",
+		"kind", "get", "clusters", "-q",
 	}
 
 	cmd := exec.Command(command[0], command[1:]...)
