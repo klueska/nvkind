@@ -13,12 +13,102 @@ The `nvkind` tool encapsulate the set of steps required to do what is described
 above. It can either be run directly, or you can import `pkg/nvkind` as a
 starting point to write your own tool.
 
+## Prerequisites
+
+The following prerequisites are required to build and run `nvkind` as well as
+follow all of the examples provided in this README:
+
+    Prerequisite | Link
+    ------------ | -------------------------------------
+    go           | https://go.dev/doc/install
+    make         | https://www.gnu.org/software/make/#download
+    docker       | https://docs.docker.com/get-docker/
+    kind         | https://kind.sigs.k8s.io/docs/user/quick-start/#installation
+    kubectl      | https://kubernetes.io/docs/tasks/tools/
+    helm         | https://helm.sh/docs/intro/install/
+
+You must also ensure that you are running on a host with a working NVIDIA
+driver and an `nvidia-container-toolkit` configured for use with `docker`.
+
+    Prerequisite             | Link
+    ------------------------ | -------------------------------------
+    nvidia-driver            | https://www.nvidia.com/download/index.aspx
+    nvidia-container-toolkit | https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+
+Running `nvidia-smi -L` on a host with a functioning driver should produce
+output such as the following:
+
+```bash
+$ nvidia-smi -L
+GPU 0: NVIDIA A100-SXM4-40GB (UUID: GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c)
+GPU 1: NVIDIA A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
+GPU 2: NVIDIA A100-SXM4-40GB (UUID: GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54)
+GPU 3: NVIDIA A100-SXM4-40GB (UUID: GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2)
+GPU 4: NVIDIA A100-SXM4-40GB (UUID: GPU-ec9d53cc-125d-d4a3-9687-304df8eb4749)
+GPU 5: NVIDIA A100-SXM4-40GB (UUID: GPU-3eb87630-93d5-b2b6-b8ff-9b359caf4ee2)
+GPU 6: NVIDIA A100-SXM4-40GB (UUID: GPU-8216274a-c05d-def0-af18-c74647300267)
+GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
+```
+
+Likewise, running the following on a host with a functioning
+`nvidia-container-toolkit` that has been configured for `docker` should produce
+the same output as above:
+
+```bash
+$ docker run --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all ubuntu:20.04 nvidia-smi -L
+GPU 0: NVIDIA A100-SXM4-40GB (UUID: GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c)
+GPU 1: NVIDIA A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
+GPU 2: NVIDIA A100-SXM4-40GB (UUID: GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54)
+GPU 3: NVIDIA A100-SXM4-40GB (UUID: GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2)
+GPU 4: NVIDIA A100-SXM4-40GB (UUID: GPU-ec9d53cc-125d-d4a3-9687-304df8eb4749)
+GPU 5: NVIDIA A100-SXM4-40GB (UUID: GPU-3eb87630-93d5-b2b6-b8ff-9b359caf4ee2)
+GPU 6: NVIDIA A100-SXM4-40GB (UUID: GPU-8216274a-c05d-def0-af18-c74647300267)
+GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
+```
+
+If you have the `nvidia-container-toolkit` installed, but you have an error
+when trying to run the `docker` command above, skip to the [Setup](#setup)
+section below to see if some of the configuration steps there resolve the
+issue.
+
+## Setup
+
+With all of the prerequisites installed, run the following commands to
+configure the `nvidia-container-toolkit` for use with `kind`.
+
+```bash
+sudo nvidia-ctk runtime configure --runtime=docker --set-as-default --cdi.enabled
+sudo nvidia-ctk config --set accept-nvidia-visible-devices-as-volume-mounts=true --in-place
+sudo systemctl restart docker
+```
+
+The first command ensures that `docker` is configured for use with the toolkit
+and that the `nvidia` runtime is set as its default. The second command enables
+a feature flag of the toolkit as described in [this
+document](https://docs.google.com/document/d/1uXVF-NWZQXgP1MLb87_kMkQvidpnkNWicdpO2l9g-fw/edit#)).
+This feature is leveraged to allow us to inject GPU support into each `kind`
+worker node.
+
+To ensure that this feature has been enabled correctly, run the following and
+verify you get output similar to the following:
+
+```bash
+$ docker run -v /dev/null:/var/run/nvidia-container-devices/all ubuntu:20.04 nvidia-smi -L
+GPU 0: NVIDIA A100-SXM4-40GB (UUID: GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c)
+GPU 1: NVIDIA A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
+GPU 2: NVIDIA A100-SXM4-40GB (UUID: GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54)
+GPU 3: NVIDIA A100-SXM4-40GB (UUID: GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2)
+GPU 4: NVIDIA A100-SXM4-40GB (UUID: GPU-ec9d53cc-125d-d4a3-9687-304df8eb4749)
+GPU 5: NVIDIA A100-SXM4-40GB (UUID: GPU-3eb87630-93d5-b2b6-b8ff-9b359caf4ee2)
+GPU 6: NVIDIA A100-SXM4-40GB (UUID: GPU-8216274a-c05d-def0-af18-c74647300267)
+GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
+```
 ## Quickstart
 
-Assuming all of the [prerequisites](#prerequisites) have been meet, the
-following set of commands can be used to build `nvkind`, create a set of GPU
-enabled clusters with it, and then print the set of GPUs available on all nodes
-of a given cluster.
+Assuming all of the [prerequisites](#prerequisites) have been meet and [setup
+steps](#setup) have been followed, the following set of commands can be used to
+build `nvkind`, create a set of GPU enabled clusters with it, and then print
+the set of GPUs available on all nodes of a given cluster.
 
 Build `nvkind`:
 ```bash
@@ -122,96 +212,6 @@ treated the same as they are for the standard `kind create cluster` call. Take
 some time to browse through the help menu of the various subcommands to see
 what other options are available.
 
-## Prerequisites
-
-The following prerequisites are required to build and run `nvkind` as well as
-follow all of the examples provided in this README:
-
-    Prerequisite | Link
-    ------------ | -------------------------------------
-    go           | https://go.dev/doc/install
-    make         | https://www.gnu.org/software/make/#download
-    docker       | https://docs.docker.com/get-docker/
-    kind         | https://kind.sigs.k8s.io/docs/user/quick-start/#installation
-    kubectl      | https://kubernetes.io/docs/tasks/tools/
-    helm         | https://helm.sh/docs/intro/install/
-
-You must also ensure that you are running on a host with a working NVIDIA
-driver and an `nvidia-container-toolkit` configured for use with `docker`.
-
-    Prerequisite             | Link
-    ------------------------ | -------------------------------------
-    nvidia-driver            | https://www.nvidia.com/download/index.aspx
-    nvidia-container-toolkit | https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
-
-Running `nvidia-smi -L` on a host with a functioning driver should produce
-output such as the following:
-
-```bash
-$ nvidia-smi -L
-GPU 0: NVIDIA A100-SXM4-40GB (UUID: GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c)
-GPU 1: NVIDIA A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
-GPU 2: NVIDIA A100-SXM4-40GB (UUID: GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54)
-GPU 3: NVIDIA A100-SXM4-40GB (UUID: GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2)
-GPU 4: NVIDIA A100-SXM4-40GB (UUID: GPU-ec9d53cc-125d-d4a3-9687-304df8eb4749)
-GPU 5: NVIDIA A100-SXM4-40GB (UUID: GPU-3eb87630-93d5-b2b6-b8ff-9b359caf4ee2)
-GPU 6: NVIDIA A100-SXM4-40GB (UUID: GPU-8216274a-c05d-def0-af18-c74647300267)
-GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
-```
-
-Likewise, running the following on a host with a functioning
-`nvidia-container-toolkit` that has been configured for `docker` should produce
-the same output as above:
-
-```bash
-$ docker run --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all ubuntu:20.04 nvidia-smi -L
-GPU 0: NVIDIA A100-SXM4-40GB (UUID: GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c)
-GPU 1: NVIDIA A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
-GPU 2: NVIDIA A100-SXM4-40GB (UUID: GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54)
-GPU 3: NVIDIA A100-SXM4-40GB (UUID: GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2)
-GPU 4: NVIDIA A100-SXM4-40GB (UUID: GPU-ec9d53cc-125d-d4a3-9687-304df8eb4749)
-GPU 5: NVIDIA A100-SXM4-40GB (UUID: GPU-3eb87630-93d5-b2b6-b8ff-9b359caf4ee2)
-GPU 6: NVIDIA A100-SXM4-40GB (UUID: GPU-8216274a-c05d-def0-af18-c74647300267)
-GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
-```
-
-If you have the `nvidia-container-toolkit` installed, but you have an error
-when trying to run the `docker` command above, skip to the [Setup](#setup)
-section below to see if some of the configuration steps there resolve the
-issue.
-
-## Setup
-
-With all of the prerequisites installed, run the following commands to
-configure the `nvidia-container-toolkit` for use with `kind`.
-
-```bash
-sudo nvidia-ctk runtime configure --runtime=docker --set-as-default --cdi.enabled
-sudo nvidia-ctk config --set accept-nvidia-visible-devices-as-volume-mounts=true --in-place
-sudo systemctl restart docker
-```
-
-The first command ensures that `docker` is configured for use with the toolkit
-and that the `nvidia` runtime is set as its default. The second command enables
-a feature flag of the toolkit as described in this [this
-document](https://docs.google.com/document/d/1uXVF-NWZQXgP1MLb87_kMkQvidpnkNWicdpO2l9g-fw/edit#)).
-This feature is leveraged to allow us to inject GPU support into each `kind`
-worker node.
-
-To ensure that this feature has been enabled correctly, run the following and
-verify you get output similar to the following:
-
-```bash
-$ docker run -v /dev/null:/var/run/nvidia-container-devices/all ubuntu:20.04 nvidia-smi -L
-GPU 0: NVIDIA A100-SXM4-40GB (UUID: GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c)
-GPU 1: NVIDIA A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
-GPU 2: NVIDIA A100-SXM4-40GB (UUID: GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54)
-GPU 3: NVIDIA A100-SXM4-40GB (UUID: GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2)
-GPU 4: NVIDIA A100-SXM4-40GB (UUID: GPU-ec9d53cc-125d-d4a3-9687-304df8eb4749)
-GPU 5: NVIDIA A100-SXM4-40GB (UUID: GPU-3eb87630-93d5-b2b6-b8ff-9b359caf4ee2)
-GPU 6: NVIDIA A100-SXM4-40GB (UUID: GPU-8216274a-c05d-def0-af18-c74647300267)
-GPU 7: NVIDIA A100-SXM4-40GB (UUID: GPU-b1028956-cfa2-0990-bf4a-5da9abb51763)
-```
 
 ## Install the k8s-device-plugin
 
