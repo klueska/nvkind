@@ -1,4 +1,4 @@
-# Examples of how to run `kind` with GPUs
+# Running `kind` clusters with GPUs using `nvkind`
 
 This repo provides a tool called `nvkind` to create and manage `kind` clusters
 with access to GPUs.
