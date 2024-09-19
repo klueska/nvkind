@@ -47,7 +47,7 @@ func (n *Node) PatchProcDriverNvidia() error {
 	// Unmount the masked /proc/driver/nvidia to allow dynamically generated
 	// MIG devices to be discovered
 	err := n.runScript(`
-		umount -R /proc/driver/nvidia
+		umount -R /proc/driver/nvidia || true
 	`)
 	if err != nil {
 		return fmt.Errorf("running script on %v: %w", n.Name, err)
@@ -161,7 +161,7 @@ func (n *Node) getNvidiaVisibleDevices() []string {
 		if mount.HostPath != "/dev/null" {
 			continue
 		}
-		if filepath.Dir(mount.ContainerPath) != "/var/run/nvidia-container-devices" {
+		if !filepath.HasPrefix(mount.ContainerPath, "/var/run/nvidia-container-devices") {
 			continue
 		}
 		devices = append(devices, filepath.Base(mount.ContainerPath))
