@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/klueska/kind-with-gpus-examples/pkg/nvkind"
+	"github.com/klueska/nvkind/pkg/nvkind"
 	"github.com/urfave/cli/v2"
 )
 
