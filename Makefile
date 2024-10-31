@@ -1,5 +1,6 @@
 GO_VERSION=1.22.1
-MODULE="github.com/klueska/kind-with-gpus-examples"
+GO_LDFLAGS=-extldflags '-lnvidia-ml'
+MODULE="github.com/klueska/nvkind"
 
 all: vendor fmt build
 
@@ -22,10 +23,10 @@ vendor:
 	go mod verify
 
 test:
-	go test $(MODULE)/...
+	go test -ldflags "$(GO_LDFLAGS)" $(MODULE)/...
 
 build:
-	go build $(MODULE)/cmd/...
+	go build -ldflags "$(GO_LDFLAGS)" $(MODULE)/cmd/...
 
 run:
-	go run $(MODULE)/...
+	go run -ldflags "$(GO_LDFLAGS)" $(MODULE)/...
